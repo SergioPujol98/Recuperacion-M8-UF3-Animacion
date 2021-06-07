@@ -2,37 +2,48 @@ package com.pujol.game;
 
 import com.badlogic.gdx.graphics.g2d.Batch;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
+import com.badlogic.gdx.math.Rectangle;
 
-class Nave {
+
+abstract class Nave {
 
     //Caracteristicas
-    float movementSpeed; //Units por segundo
+    float movementSpeed;  //Unidades por segundo
     int shield;
 
-    //Posicion y dimensiones
-    float xPosition, yPosition; //Esquina inferior izquierda
-    float width,height;
+    //position & dimension
+    com.badlogic.gdx.math.Rectangle boundingBox;
 
-    //Graphics
-    TextureRegion shipTexture, shieldTexture;
+    //graphics
+    TextureRegion shipTextureRegion, shieldTextureRegion, laserTextureRegion;
 
-    public Nave(float movementSpeed, int shield, float width,
-                float height, float xCentro, float yCentro,
-                TextureRegion shipTexture, TextureRegion shieldTexture) {
+    public Nave(float xCentre, float yCentre,
+                float width, float height,
+                float movementSpeed, int shield,
+                float laserWidth, float laserHeight, float laserMovementSpeed,
+                float timeBetweenShots,
+                TextureRegion shipTextureRegion, TextureRegion shieldTextureRegion,
+                TextureRegion laserTextureRegion) {
         this.movementSpeed = movementSpeed;
         this.shield = shield;
-        this.xPosition = xCentro - width/2;
-        this.yPosition = yCentro - height/2;
-        this.width = width;
-        this.height = height;
-        this.shipTexture = shipTexture;
-        this.shieldTexture = shieldTexture;
+
+        this.boundingBox = new Rectangle(xCentre - width / 2, yCentre - height / 2, width, height);
+
+
+        this.shipTextureRegion = shipTextureRegion;
+        this.shieldTextureRegion = shieldTextureRegion;
+        this.laserTextureRegion = laserTextureRegion;
+    }
+
+
+    public void translate(float xChange, float yChange) {
+        boundingBox.setPosition(boundingBox.x+xChange, boundingBox.y+yChange);
     }
 
     public void draw(Batch batch) {
-        batch.draw(shipTexture, xPosition, yPosition, width, height);
+        batch.draw(shipTextureRegion, boundingBox.x, boundingBox.y, boundingBox.width, boundingBox.height);
         if (shield > 0) {
-            batch.draw(shieldTexture, xPosition,yPosition, width,height);
+            batch.draw(shieldTextureRegion, boundingBox.x, boundingBox.y, boundingBox.width, boundingBox.height);
         }
     }
 }

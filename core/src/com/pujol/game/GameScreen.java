@@ -1,5 +1,7 @@
 package com.pujol.game;
 
+import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.Input;
 import com.badlogic.gdx.Screen;
 import com.badlogic.gdx.graphics.Camera;
 import com.badlogic.gdx.graphics.OrthographicCamera;
@@ -19,103 +21,144 @@ public class GameScreen implements Screen {
     private SpriteBatch batch;
     private TextureAtlas textureAtlas;
 
-    private TextureRegion[] fondos;
+    private TextureRegion[] backgrounds;
     private float backgroundHeight;
 
-    private TextureRegion playerShipTextureRegion, playerShieldTextureRegion, enemyShipTextureRegion,
-            enemyShieldTextureRegion, playerLaserTextureRegion, enemyLaserTextureRegion;
+    private TextureRegion playerShipTextureRegion, playerShieldTextureRegion,
+            enemyShipTextureRegion, enemyShieldTextureRegion,
+            playerLaserTextureRegion, enemyLaserTextureRegion;
 
     //timing
-   // private int backgroundOffset;
-    private float[] backgroundOffsets = {0,0,0,0};
+    private float[] backgroundOffsets = {0, 0, 0, 0};
     private float backgroundMaxScrollingSpeed;
 
     //world parameters
     private final int WORLD_WIDTH = 72;
     private final int WORLD_HEIGHT = 128;
 
-    //gameobjects
+    //game objects
     private Nave playerShip;
     private Nave enemyShip;
 
+
     GameScreen() {
 
-        camera = new OrthographicCamera(); //Solo tiene 2d esta camara
+        camera = new OrthographicCamera(); //2d
         viewport = new StretchViewport(WORLD_WIDTH, WORLD_HEIGHT, camera);
 
-        //TextureAtlas
-        textureAtlas = new TextureAtlas("Imagenes.atlas");
+        textureAtlas = new TextureAtlas("Imagenes.atlas"); //Cogemos las texturas del Atlas
 
-        //background = new Texture("darkPurpleStarscape.png");
-        //backgroundOffset = 0;
 
-        fondos = new TextureRegion[4];
-        fondos[0] = textureAtlas.findRegion("Starscape00");
-        fondos[1] = textureAtlas.findRegion("Starscape01");
-        fondos[2] = textureAtlas.findRegion("Starscape02");
-        fondos[3] = textureAtlas.findRegion("Starscape03");
+        backgrounds = new TextureRegion[4];  //Metemos los diferentes layers del fondo en el array
+        backgrounds[0] = textureAtlas.findRegion("Starscape00");
+        backgrounds[1] = textureAtlas.findRegion("Starscape01");
+        backgrounds[2] = textureAtlas.findRegion("Starscape02");
+        backgrounds[3] = textureAtlas.findRegion("Starscape03");
 
         backgroundHeight = WORLD_HEIGHT * 2;
         backgroundMaxScrollingSpeed = (float) (WORLD_HEIGHT) / 4;
 
-        //Initialize texture regions
+        //TextureRegions
         playerShipTextureRegion = textureAtlas.findRegion("playerShip3_blue");
         enemyShipTextureRegion = textureAtlas.findRegion("enemyGreen4");
-        playerShieldTextureRegion = textureAtlas.findRegion("shield1");
-        enemyShieldTextureRegion = textureAtlas.findRegion("shield2");
-        enemyShieldTextureRegion.flip(false,true); //Giramos el  escudo del enemigo para que no salga al reves.
+        playerShieldTextureRegion = textureAtlas.findRegion("shield2");
+        enemyShieldTextureRegion = textureAtlas.findRegion("shield1");
+        enemyShieldTextureRegion.flip(false, true);
+
         playerLaserTextureRegion = textureAtlas.findRegion("laserRed03");
         enemyLaserTextureRegion = textureAtlas.findRegion("laserGreen05");
 
-        //Poner los objetos del juego
-        playerShip = new Nave(2,3,10,10,
-                WORLD_WIDTH/2, WORLD_HEIGHT/4,
-                playerShipTextureRegion, playerShieldTextureRegion);
-        enemyShip = new Nave(2,1,10,10,
-                WORLD_WIDTH/2, WORLD_HEIGHT*3/4,
-                enemyShipTextureRegion, enemyShieldTextureRegion);
+        //Creamos los items
+        playerShip = new Jugador(WORLD_WIDTH / 2, WORLD_HEIGHT / 4,
+                10, 10,
+                48, 3,
+                0.4f, 4, 45, 0.5f,
+                playerShipTextureRegion, playerShieldTextureRegion, playerLaserTextureRegion);
+
+        enemyShip = new Enemigo(WORLD_WIDTH / 2, WORLD_HEIGHT * 3 / 4,
+                10, 10,
+                2, 1,
+                0.3f, 5, 50, 0.8f,
+                enemyShipTextureRegion, enemyShieldTextureRegion, enemyLaserTextureRegion);
+
 
 
         batch = new SpriteBatch();
-
-
     }
 
     @Override
-    public void render(float deltaTime) {
+    public void render(float deltaTime) { //"Introducimos" en pantalla los siguientes elementos
         batch.begin();
 
-        //Scrolling background (Lo hacemos infinito) y con movimiento
+        detectInput(deltaTime);
+
         renderBackground(deltaTime);
 
-        //Naves enemigas
         enemyShip.draw(batch);
-        //Nave del jugador
+
         playerShip.draw(batch);
 
+
+
+        //explosions
+        renderExplosions(deltaTime);
 
         batch.end();
     }
 
-    //Con esto, hacemos que la velocidad de las estrellas del mapa sea diferente.
-    private void renderBackground(float deltaTime) { //Velocidad de las lineas/capas.
-        backgroundOffsets[0] += deltaTime * backgroundMaxScrollingSpeed / 8;
+    private void detectInput(float deltaTime) {
+        //Aqui creamos el movimiento a partir de pulsar un boton.
+        float leftLimit, rightLimit, upLimit, downLimit;
+        leftLimit = -playerShip.boundingBox.x;
+        downLimit = -playerShip.boundingBox.y;
+        rightLimit = WORLD_WIDTH - playerShip.boundingBox.x - playerShip.boundingBox.width;
+        upLimit = WORLD_HEIGHT/2 - playerShip.boundingBox.y - playerShip.boundingBox.height;
+
+        if (Gdx.input.isKeyPressed(Input.Keys.RIGHT) && rightLimit > 0) {
+            playerShip.translate(Math.min(playerShip.movementSpeed*deltaTime, rightLimit), 0f);
+        }
+        if (Gdx.input.isKeyPressed(Input.Keys.UP) && upLimit > 0) {
+            playerShip.translate( 0f, Math.min(playerShip.movementSpeed*deltaTime, upLimit));
+        }
+
+        if (Gdx.input.isKeyPressed(Input.Keys.LEFT) && leftLimit < 0) {
+            playerShip.translate(Math.max(-playerShip.movementSpeed*deltaTime, leftLimit), 0f);
+        }
+        if (Gdx.input.isKeyPressed(Input.Keys.DOWN) && downLimit < 0) {
+            playerShip.translate(0f, Math.max(-playerShip.movementSpeed*deltaTime, downLimit));
+        }
+
+        //touch input (also mouse)
+
+    }
+
+
+    private void renderExplosions(float deltaTime) {
+
+    }
+
+
+
+    private void renderBackground(float deltaTime) {
+        backgroundOffsets[0] += deltaTime * backgroundMaxScrollingSpeed / 8; //Con esto cambiamos la velocidad de las diferentes
+        //capas de estrellas (fondo)
         backgroundOffsets[1] += deltaTime * backgroundMaxScrollingSpeed / 4;
         backgroundOffsets[2] += deltaTime * backgroundMaxScrollingSpeed / 2;
         backgroundOffsets[3] += deltaTime * backgroundMaxScrollingSpeed;
 
-        for (int layer = 0; layer < backgroundOffsets.length; layer ++) { //Mapa infinito
+
+        for (int layer = 0; layer < backgroundOffsets.length; layer++) {
             if (backgroundOffsets[layer] > WORLD_HEIGHT) {
                 backgroundOffsets[layer] = 0;
             }
-            batch.draw(fondos[layer], 0, -backgroundOffsets[layer], WORLD_WIDTH, WORLD_HEIGHT);
-            batch.draw(fondos[layer], 0, -backgroundOffsets[layer] + WORLD_HEIGHT, WORLD_WIDTH, WORLD_HEIGHT);
+            batch.draw(backgrounds[layer], 0, -backgroundOffsets[layer],
+                    WORLD_WIDTH, backgroundHeight);
         }
     }
 
     @Override
     public void resize(int width, int height) {
-        viewport.update(width, height, true); //Punto de vista
+        viewport.update(width, height, true);
         batch.setProjectionMatrix(camera.combined);
     }
 
@@ -138,9 +181,8 @@ public class GameScreen implements Screen {
     public void show() {
 
     }
-
     @Override
     public void dispose() {
-
+        batch.dispose();
     }
 }
